@@ -1,38 +1,47 @@
 #!/user/bin/bash
 
 #$sh fastascan.sh folder N
-#1. the folder X where to search files (default: current folder); 
-if [[ $1 -n ]];
+if [[ -d $1 ]]; #1. the folder X where to search files (default: current folder); 
 then
-fastafiles=$(find $1 -type f -name "*.fa" -or -name ".fasta");
+n_files=$(find $1 -type f -name "*.fa" -or -name ".fasta" | wc -l );
 else
-fastafiles=$(find . -type f -name "*.fa" -or -name ".fasta");
-fi
+n_files=$(find . -type f -name "*.fa" -or -name ".fasta" | wc -l);
+fi;
 
 #2. a number of lines, here called N (default: 0)
-if [[ $2 -n ]];
+if [[ -n $2  ]];
 then
 N=$2;
 else
 N="0"
 fi
+
+echo Searching for fasta files in $1
+echo Number of lines specified $N
+
+echo $n_lines
 #The report should include this information:
-#how many such files there are
+	if [[ $n_files -gt 1 ]];#how many such files there are	
+	then 
+		echo There are $n_files;
+	ifelse [[ $n_files -eq 1]];
+		echo There is 1 fasta files; 
+	else
+		echo There are no fasta files;
+	fi;
+	
 for i in $fastafiles;
 do
-	if [[ $n_lines -gt 1 ]];
-	then 
-	echo There are $n_files;
-	ifelse [[ $n_lines -eq 1]];
-	then
-	echo There are no fasta files;
-	else
-	echo There is 1 fasta files; 
-	fi;
+
 #how many unique fasta IDs (i.e. the first words of fasta headers) they contain in total 
 	grep ">" $i | uniq
 	 
 #for each file:
+filename=$(echo $i)
+symlnk=$(if [[ $i -h ]]; then echo "YES"; else echo "NO")
+numberseq=$(grep -c ">" $i )
+seqlength=$(for f in $(grep -v ">" $i); do wc -c; done)
+echo File name: $filename Symlink: $symlnk Number of sequences: $numberseq Sequence length: $seqlength
 #	print a nice header including filename; and:
 #	whether the file is a symlink or not
 #	how many sequences there are inside
