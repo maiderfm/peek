@@ -1,7 +1,9 @@
-#!/user/bin/bash
+#!/usr/bin/bash
 
 #$sh fastascan.sh folder N
-if [[ -d $1 ]]; #1. the folder X where to search files (default: current folder); 
+
+#Specify the folder to be searched and the number of lines
+if [[ -d $1 ]];   #If the first argument is a folder
 then
 	name_folder=$1
 	fastafiles=$(find . \( -type f -or -type l \) \( -name "*.fa" -or -name "*.fasta" \));
@@ -10,11 +12,11 @@ then
 		
 		if [[ -n $2 ]];
 		then
-			N=$2; else N= 0;
+			N=$2; else N=0;
 		fi
 		echo Number of lines specified = $N
 
-else
+else 	#if not, search the current folder as default 
 	name_folder="current directory"
 	fastafiles=$(find . \( -type f -or -type l \) \( -name "*.fa" -or -name "*.fasta" \));
 	n_files=$(find . \( -type f -or -type l \) \( -name "*.fa" -or -name "*.fasta" \)| wc -l );
@@ -23,13 +25,13 @@ else
 	
 		if [[ -n $1 ]];
 		then
-			N=$1; else  N= 0;
+			N=$1; else  N=0;
 		fi
 		echo Number of lines specified = $N
 fi
 
-#The report should include this information:
-	if [[ $n_files -gt 1 ]];#how many such files there are	
+#Print the number of files in the folder being searched
+	if [[ $n_files -gt 1 ]];	
 	then 
 		echo There are $n_files fasta files;
 	elif [[ $n_files -eq 1 ]];
@@ -38,45 +40,48 @@ fi
 	else
 		echo There are no fasta files;
 	fi;
-	
-echo All fasta identifiers in the folder $1:
 
-for f in $(echo $fastafiles)
-do
-echo $(grep ">" $f | sed '/>/ s/>//' | awk '{print $1}' | sort | uniq)
-done
-	
-#for each file:
+
 for i in $(echo $fastafiles);
 do
-	filename=$(echo $i)
-	symlnk=$(if [[ -h $i ]]; then echo "YES"; else echo "NO"; fi)
-	numberseq=$(grep -c ">" $i )
-	seqlength=$(sed '/>/! s/\n-//g' $i | wc -c)  #gaps "-", spaces, newline characters should not be counted
+	#Print all fasta sequence identifiers (first element of the fasta header)
+		echo All fasta identifiers in $name_folder :
+		echo $(grep ">" $i 2>err| sed '/>/ s/>//' | awk '{print $1}' | sort | uniq)
+	
+	#For each file print a header that contains:
+		filename=$(echo $i| awk '{split($0, str, "/"); print str[length(str)]}') #Name of file
+		symlnk=$(if [[ -h $i ]]; then echo "YES"; else echo "NO"; fi) #Wether it is a symlink
+		numberseq=$(grep -c ">" $i 2>err ) #Number of sequences
+		seqlength=$(sed '/>/! s/\n-//g' $i | wc -c)  #Total length of the sequences. Gaps "-", spaces, newline characters not counted
+		#Wether the sequence contains nucleotides or aminoacids
+		seq_nuc=$(grep -v ">" "$i" 2>err | grep '[atgcunATGCUN]')
+		seq_prot=$(grep -v ">" "$i" 2>err| grep '[^atgcnuATGCNU]') 
+			if [[ -n $seq_nuc && -n $seq_prot ]]; then 
+				seq_type=Aminoacid
+			elif [[ -n $seq_nuc ]]; then 
+				seq_type=Nucleotide
+			else 
+				seq_type=Unknown
+			fi
 
-#	print a nice header including filename; and:
-	echo File name: $filename Symlink: $symlnk 
-	echo Number of sequences: $numberseq Sequence length: $seqlength
-	#	whether the file is a symlink or not
-	#	how many sequences there are inside
-	#	the total sequence length in each file, i.e. the total number of amino acids or nucleotides of all sequences in the file. NOTE: gaps "-", spaces, newline characters should not be counted
-	#Extra points: determine if the file is nucleotide or amino acids based on their content, and print a label to indicate this in this header
+	#Print header
+	echo " "
+	echo  /// File name: $filename /// Symlink: $symlnk /// Number of sequences: $numberseq /// Sequence length: $seqlength /// Type of sequence: $seq_type
+	echo " "
+	
 
-#next, if the file has 2N lines or fewer, then display its full content; if not, show the first N lines, then "...", then the last N lines. If N is 0, skip this step.
-n_lines=$(cat $i | wc -l)
-
-if [[ n_lines -le $(( 2*$N )) ]];
-then 
+	#Print contents depending on the number of lines its file has and the number specified.
+	n_lines=$(cat $i | wc -l)
+	if [[ n_lines -le $(( 2*$N )) ]];	#if the file has 2N lines or fewer, display full content.
+	then 
 	cat $i;
-elif [[ n_lines -eq 0 ]]
-then
-	continue
-else
+	elif [[ n_lines -eq 0 ]] 			#if no N is specified, skip step.
+	then
+		continue
+	else 								#else print first N lines, then "...", then last N lines.
 	head -n $N $i
 	echo "..."
 	tail -n $N $i
-fi;
+	fi;
 
 done
-#next, if the file has 2N lines or fewer, then display its full content; if not, show the first N lines, then "...", then the last N lines. If N is 0, skip this step.
-
