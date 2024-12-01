@@ -6,30 +6,36 @@
 # Specify the folder to be searched and the number of lines
 #######################################################################################################################
 
-#If the first argument is a folder
+#If the first argument is a folder that exists
 	if [[ -d $1 ]]; 
 	then
 		name_folder=$1
 		fastafiles=$(find $1 \( -type f -or -type l \) \( -name "*.fa" -or -name "*.fasta" \) ! -name ".*");
 		n_files=$(find $1 \( -type f -or -type l \) \( -name "*.fa" -or -name "*.fasta" \) ! -name ".*"| wc -l );
 		echo Searching for fasta files in $1.
-			#If the second argument is provided, use as number of lines specified, if not default to 0
-			if [[ -n $2 ]]; 
+			#If the second argument is provided and a number, use as number of lines specified, if not default to 0
+			if [[ -n $2 && $2 = [0123456789] ]]; 
 			then
 				N=$2; else N=0;
 			fi
 			echo Number of lines specified: $N.
-	#If is not a folder, search the current folder as default
-	else 	 
+	#If is not a folder that exists, search the current folder as default
+	elif [[ -n $1 && ! -d $1 ]] 
+	then	 
 		name_folder="current directory"
 		fastafiles=$(find . \( -type f -or -type l \) \( -name "*.fa" -or -name "*.fasta" \) ! -name ".*");
 		n_files=$(find . \( -type f -or -type l \) \( -name "*.fa" -or -name "*.fasta" \) ! -name ".*"| wc -l );
-
 		echo Searching for fasta files in the current directory.
-			#If the first argument is provided use as number of lines specified, if not default to 0
-			if [[ -n $1 ]];
+			
+			if [[ -n $1 && $1 = [0123456789] ]];	#If the first argument is provided and a number, use as number of lines specified
 			then
-				N=$1; else  N=0;
+				N=$1
+			elif [[ -n $1 && $1 != [0123456789] && -n $2 && $2 = [0123456789] ]]	#If the second argument is provided and a number, use as number of lines specified 
+			then																	#(WHEN ARG1 AND ARG2 ARE GIVEN BUT ARG1 IS NOT A REAL FOLDER)
+				N=$2; 
+			else 									 #if not default to 0
+				N=0									
+
 			fi
 			echo Number of lines specified: $N.
 	fi
@@ -89,7 +95,6 @@ echo All fasta identifiers in $name_folder:
 		echo /// FILE NAME: $filename 
 		echo /// SYMLINK: $symlnk /// NUMBER OF SEQUENCES: $numberseq /// TOTAL SEQUENCE LENGTH: $seqlength /// TYPE OF SEQUENCE: $seq_type 
 		echo " "
-		
 
 		#Print contents depending on the number of lines the file has and the number specified.
 		n_lines=$(cat $i | wc -l)
