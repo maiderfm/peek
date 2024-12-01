@@ -2,86 +2,107 @@
 
 #$sh fastascan.sh folder N
 
-#Specify the folder to be searched and the number of lines
-if [[ -d $1 ]];   #If the first argument is a folder
-then
-	name_folder=$1
-	fastafiles=$(find . \( -type f -or -type l \) \( -name "*.fa" -or -name "*.fasta" \));
-	n_files=$(find . \( -type f -or -type l \) \( -name "*.fa" -or -name "*.fasta" \) | wc -l );
-	echo Searching for fasta files in $1
-		
-		if [[ -n $2 ]];
-		then
-			N=$2; else N=0;
-		fi
-		echo Number of lines specified = $N
+#######################################################################################################################
+# Specify the folder to be searched and the number of lines
+#######################################################################################################################
 
-else 	#if not, search the current folder as default 
-	name_folder="current directory"
-	fastafiles=$(find . \( -type f -or -type l \) \( -name "*.fa" -or -name "*.fasta" \));
-	n_files=$(find . \( -type f -or -type l \) \( -name "*.fa" -or -name "*.fasta" \)| wc -l );
-
-	echo Searching for fasta files in current directory
-	
-		if [[ -n $1 ]];
-		then
-			N=$1; else  N=0;
-		fi
-		echo Number of lines specified = $N
-fi
-
-#Print the number of files in the folder being searched
-	if [[ $n_files -gt 1 ]];	
-	then 
-		echo There are $n_files fasta files;
-	elif [[ $n_files -eq 1 ]];
-	then 
-		echo There is 1 fasta files; 
-	else
-		echo There are no fasta files;
-	fi;
-
-
-for i in $(echo $fastafiles);
-do
-	#Print all fasta sequence identifiers (first element of the fasta header)
-		echo All fasta identifiers in $name_folder :
-		echo $(grep ">" $i 2>err| sed '/>/ s/>//' | awk '{print $1}' | sort | uniq)
-	
-	#For each file print a header that contains:
-		filename=$(echo $i| awk '{split($0, str, "/"); print str[length(str)]}') #Name of file
-		symlnk=$(if [[ -h $i ]]; then echo "YES"; else echo "NO"; fi) #Wether it is a symlink
-		numberseq=$(grep -c ">" $i 2>err ) #Number of sequences
-		seqlength=$(sed '/>/! s/\n-//g' $i | wc -c)  #Total length of the sequences. Gaps "-", spaces, newline characters not counted
-		#Wether the sequence contains nucleotides or aminoacids
-		seq_nuc=$(grep -v ">" "$i" 2>err | grep '[atgcunATGCUN]')
-		seq_prot=$(grep -v ">" "$i" 2>err| grep '[^atgcnuATGCNU]') 
-			if [[ -n $seq_nuc && -n $seq_prot ]]; then 
-				seq_type=Aminoacid
-			elif [[ -n $seq_nuc ]]; then 
-				seq_type=Nucleotide
-			else 
-				seq_type=Unknown
-			fi
-
-	#Print header
-	echo " "
-	echo  /// File name: $filename /// Symlink: $symlnk /// Number of sequences: $numberseq /// Sequence length: $seqlength /// Type of sequence: $seq_type
-	echo " "
-	
-
-	#Print contents depending on the number of lines its file has and the number specified.
-	n_lines=$(cat $i | wc -l)
-	if [[ n_lines -le $(( 2*$N )) ]];	#if the file has 2N lines or fewer, display full content.
-	then 
-	cat $i;
-	elif [[ n_lines -eq 0 ]] 			#if no N is specified, skip step.
+#If the first argument is a folder
+	if [[ -d $1 ]]; 
 	then
-		continue
-	else 								#else print first N lines, then "...", then last N lines.
-	head -n $N $i
-	echo "..."
-	tail -n $N $i
-	fi;
+		name_folder=$1
+		fastafiles=$(find $1 \( -type f -or -type l \) \( -name "*.fa" -or -name "*.fasta" \) ! -name ".*");
+		n_files=$(find $1 \( -type f -or -type l \) \( -name "*.fa" -or -name "*.fasta" \) ! -name ".*"| wc -l );
+		echo Searching for fasta files in $1.
+			#If the second argument is provided, use as number of lines specified, if not default to 0
+			if [[ -n $2 ]]; 
+			then
+				N=$2; else N=0;
+			fi
+			echo Number of lines specified: $N.
+	#If is not a folder, search the current folder as default
+	else 	 
+		name_folder="current directory"
+		fastafiles=$(find . \( -type f -or -type l \) \( -name "*.fa" -or -name "*.fasta" \) ! -name ".*");
+		n_files=$(find . \( -type f -or -type l \) \( -name "*.fa" -or -name "*.fasta" \) ! -name ".*"| wc -l );
 
-done
+		echo Searching for fasta files in the current directory.
+			#If the first argument is provided use as number of lines specified, if not default to 0
+			if [[ -n $1 ]];
+			then
+				N=$1; else  N=0;
+			fi
+			echo Number of lines specified: $N.
+	fi
+
+#######################################################################################################################
+# Print the number of files in the folder being searched
+#######################################################################################################################
+
+	if [[ $n_files -gt 1 ]];				# > 1 files
+	then 
+		echo There are $n_files fasta files.;
+	elif [[ $n_files -eq 1 ]];				# Single file
+	then 
+		echo There is 1 fasta file.; 
+	else									# No files
+		echo There are no fasta files.;
+	fi;
+	
+#######################################################################################################################
+# Print all fasta sequence identifiers (first element of the fasta header)
+#######################################################################################################################
+
+echo All fasta identifiers in $name_folder:
+
+	for i in $(echo $fastafiles);
+	do
+			echo $(grep ">" $i | sed '/>/ s/>//' | awk '{print $1}' | sort | uniq)
+	done
+	
+#######################################################################################################################
+# Print a header and contents for each fasta file 
+#######################################################################################################################
+
+	for i in $(echo $fastafiles);	#For each file the header contains:
+	do
+			#Name of file
+			filename=$(echo $i| awk '{split($0, str, "/"); print str[length(str)]}') 
+			#Wether it is a symlink
+			symlnk=$(if [[ -h $i ]]; then echo "YES"; else echo "NO"; fi) 
+			#Number of sequences
+			numberseq=$(grep -c ">" $i ) 
+			#Total length of the sequences excluding "-", spaces, newline characters.
+			seqlength=$(awk -v ORS="" '!/>/ {print}' $i | sed 's/[- ]//g' | wc -c)  
+			#Wether the sequence contains nucleotides or aminoacids
+			seq_nuc=$(grep -v ">" $i | grep '[atgcunATGCUN]')
+			seq_prot=$(grep -v ">" $i | grep '[^atgcnuATGCNU]') 
+				if [[ -n $seq_nuc && -n $seq_prot ]]; then 
+					seq_type=Aminoacid
+				elif [[ -n $seq_nuc ]]; then 
+					seq_type=Nucleotide
+				else 
+					seq_type=Unknown
+				fi
+
+		#Print header
+		echo " "
+		echo /// FILE NAME: $filename 
+		echo /// SYMLINK: $symlnk /// NUMBER OF SEQUENCES: $numberseq /// TOTAL SEQUENCE LENGTH: $seqlength /// TYPE OF SEQUENCE: $seq_type 
+		echo " "
+		
+
+		#Print contents depending on the number of lines the file has and the number specified.
+		n_lines=$(cat $i | wc -l)
+		if [[ n_lines -le $(( 2*$N )) ]];	#if the file has 2N lines or fewer, display full content.
+		then 
+		cat $i;
+		elif [[ $N -eq 0 ]] 				#if no N is specified, skip step.
+		then
+			continue
+		else 								#else print first N lines, then "...", then last N lines.
+		head -n $N $i
+		echo "..."
+		tail -n $N $i
+		fi;
+
+	done
