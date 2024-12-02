@@ -9,6 +9,9 @@
 #If the first argument is a folder that exists
 	if [[ -d $1 ]]; 
 	then
+		
+		if [[ -x $1 && -r $1  ]]; #If the folder has permissions
+		then
 		name_folder=$1
 		fastafiles=$(find $1 \( -type f -or -type l \) \( -name "*.fa" -or -name "*.fasta" \) ! -name ".*");
 		n_files=$(find $1 \( -type f -or -type l \) \( -name "*.fa" -or -name "*.fasta" \) ! -name ".*"| wc -l );
@@ -19,6 +22,10 @@
 				N=$2; else N=0;
 			fi
 			echo Number of lines specified: $N.
+		
+		else echo "$1: Permission denied" ; exit  #If folder doesn't have permissions
+		fi
+	
 	#If is not a folder that exists, search the current folder as default
 	elif [[ -n $1 && ! -d $1 ]] 
 	then	 
