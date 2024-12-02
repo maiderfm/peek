@@ -14,7 +14,7 @@
 		then
 		name_folder=$1
 		fastafiles=$(find $1 \( -type f -or -type l \) \( -name "*.fa" -or -name "*.fasta" \) ! -name ".*");
-		n_files=$($fastafiles| wc -l );
+		n_files=$(find $1 \( -type f -or -type l \) \( -name "*.fa" -or -name "*.fasta" \) ! -name ".*"| wc -l );
 		echo Searching for fasta files in $1.
 			#If the second argument is provided and a number, use as number of lines specified, if not default to 0
 			if [[ -n $2 && $2 = [0123456789] ]]; 
@@ -31,7 +31,7 @@
 	then	 
 		name_folder="current directory"
 		fastafiles=$(find . \( -type f -or -type l \) \( -name "*.fa" -or -name "*.fasta" \) ! -name ".*");
-		n_files=$($fastafiles | wc -l );
+		n_files=$(find . \( -type f -or -type l \) \( -name "*.fa" -or -name "*.fasta" \) ! -name ".*"| wc -l );
 		echo Searching for fasta files in the current directory.
 			
 			if [[ -n $1 && $1 = [0123456789] ]];	#If the first argument is provided and a number, use as number of lines specified
